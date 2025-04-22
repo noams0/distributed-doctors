@@ -20,7 +20,7 @@ func main() {
 	patients := 0
 	treated := 0
 
-	// Initialisation par site
+	// init un peu shlag
 	switch *siteID {
 	case 3:
 		freeDoctors = 0
@@ -42,12 +42,12 @@ func main() {
 	syncChan := make(chan struct{}, 1)
 	syncChan <- struct{}{}
 
-	// Envoi de l'état initial au contrôleur
+	// envoi de l'état initial au contrôleur
 	fmt.Fprintf(writer, "UPDATE %d %d\n", *siteID, freeDoctors)
 	writer.Flush()
-	fmt.Fprintf(os.Stderr, "[APP %d] 👨‍⚕️ Médecins libres: %d | 🤒 Malades: %d\n", *siteID, freeDoctors, patients)
+	fmt.Fprintf(os.Stderr, "[APP %d] Médecins libres: %d | Malades: %d\n", *siteID, freeDoctors, patients)
 
-	// Demande initiale si besoin
+	// demande initiale si besoin
 	fmt.Fprintf(os.Stderr, "%d > %d\n", patients, freeDoctors)
 	if patients > freeDoctors {
 		time.Sleep(1 * time.Second)
@@ -61,18 +61,18 @@ func main() {
 	const red = "\033[31m"
 	const reset = "\033[0m"
 
-	// Affichage périodique
+	// affichage périodique de l'état actuelle
 	go func() {
 		for {
 			time.Sleep(10 * time.Second)
 			<-syncChan
-			fmt.Fprintf(os.Stderr, red+"[APP %d] 🔁 État — 👨‍⚕️ Libres: %d | 🔧 Occupés: %d | 🤒 Malades: %d | ✅ Soignés: %d\n"+reset,
+			fmt.Fprintf(os.Stderr, red+"[APP %d] État — médecins Libres: %d | médecins Occupés: %d | Malades: %d | Soignés: %d\n"+reset,
 				*siteID, freeDoctors, busyDoctors, patients, treated)
 			syncChan <- struct{}{}
 		}
 	}()
 
-	// Traitement des patients
+	// traitement des patients
 	go func() {
 		for {
 			time.Sleep(1 * time.Second)
@@ -98,7 +98,7 @@ func main() {
 				patients--
 				treated++
 
-				fmt.Fprintf(os.Stderr, "[APP %d] ✅ Patient soigné. Reste %d malades | 👨‍⚕️ libres: %d\n",
+				fmt.Fprintf(os.Stderr, "[APP %d] Patient soigné. Reste %d malades |️ libres: %d\n",
 					*siteID, patients, freeDoctors)
 
 				// Mise à jour du contrôleur (le médecin est à nouveau dispo)
@@ -110,7 +110,7 @@ func main() {
 		}
 	}()
 
-	// Réception des messages
+	// réception des messages
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
@@ -119,7 +119,7 @@ func main() {
 			<-syncChan
 
 			line := scanner.Text()
-			fmt.Fprintf(os.Stderr, "[APP %d] 📩 Message contrôleur : %s\n", *siteID, line)
+			fmt.Fprintf(os.Stderr, "[APP %d] Message contrôleur : %s\n", *siteID, line)
 
 			tokens := strings.Fields(line)
 			if len(tokens) > 0 && tokens[0] == "GIVE" && len(tokens) == 4 {
@@ -128,7 +128,7 @@ func main() {
 
 				if dst == *siteID {
 					freeDoctors += n
-					fmt.Fprintf(os.Stderr, "[APP %d] 🚑 Reçu %d médecin(s). Total libres: %d\n", *siteID, n, freeDoctors)
+					fmt.Fprintf(os.Stderr, "[APP %d] Reçu %d médecin(s). Total libres: %d\n", *siteID, n, freeDoctors)
 
 					// Mise à jour
 					fmt.Fprintf(writer, "UPDATE %d %d\n", *siteID, freeDoctors)

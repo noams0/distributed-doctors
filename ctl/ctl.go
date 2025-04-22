@@ -61,18 +61,18 @@ func main() {
 				}
 
 				fromID, _ := strconv.Atoi(tokens[1])
-				// n, _ := strconv.Atoi(tokens[2]) // <- optionnel, ici on envoie que 1 médecin max
+				// n, _ := strconv.Atoi(tokens[2]) //si on voudra faire transier plusieurs médecins
 
 				fmt.Fprintf(os.Stderr, "[CTL %d] Nombre de médecin : %d\n", state.ID, state.Doctors)
 				if state.Doctors > 0 {
 
-					// On répond à la demande : envoie d’un médecin
+					// soit on répond à la demande : envoie d’un médecin
 					msg := fmt.Sprintf("GIVE %d %d %d", state.ID, fromID, 1)
 					fmt.Fprintln(writer, msg)
 					writer.Flush()
 					fmt.Fprintf(os.Stderr, "[CTL %d] Envoi de 1 médecin à %d\n", state.ID, fromID)
 				} else {
-					// Pas assez de médecins → relayer
+					// si pas assez de médecins : relayer
 					fmt.Println(line)
 					fmt.Fprintf(os.Stderr, "[CTL %d] Relais de la demande de %d\n", state.ID, fromID)
 				}
@@ -109,7 +109,7 @@ func main() {
 				}
 			}
 
-			syncChan <- struct{}{} // relâcher le verrou
+			syncChan <- struct{}{} // release du verrou
 		}
 	}()
 

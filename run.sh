@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# Nettoyage des anciens pipes
 rm -f /tmp/in_* /tmp/out_*
 
 # Création des pipes
@@ -8,10 +7,8 @@ mkfifo /tmp/in_A1 /tmp/out_A1 /tmp/in_C1 /tmp/out_C1
 mkfifo /tmp/in_A2 /tmp/out_A2 /tmp/in_C2 /tmp/out_C2
 mkfifo /tmp/in_A3 /tmp/out_A3 /tmp/in_C3 /tmp/out_C3
 
-# Liste des PIDs à tuer
 pids=()
 
-# Fonction de nettoyage à la fin
 cleanup() {
   echo "Arrêt des processus..."
   for pid in "${pids[@]}"; do
@@ -21,10 +18,10 @@ cleanup() {
   exit
 }
 
-# Capture CTRL+C ou fermeture
+# CTRL+C ou fermeture entraine le cleanup
 trap cleanup SIGINT SIGTERM EXIT
 
-# Lancement des processus + stockage des PIDs
+# lancement des processus + stockage des PIDs
 go run app/app.go -n 1 < /tmp/in_A1 > /tmp/out_A1 & pids+=($!)
 go run ctl/ctl.go -n 1 < /tmp/in_C1 > /tmp/out_C1 & pids+=($!)
 
@@ -44,6 +41,5 @@ cat /tmp/out_C2 | tee /tmp/in_A2 > /tmp/in_C3 & pids+=($!)
 cat /tmp/out_A3 > /tmp/in_C3 & pids+=($!)
 cat /tmp/out_C3 | tee /tmp/in_A3 > /tmp/in_C1 & pids+=($!)
 
-# Attente infinie pour garder le script vivant
-# (CTRL+C déclenchera `cleanup`)
+
 wait
