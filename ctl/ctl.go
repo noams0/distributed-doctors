@@ -63,7 +63,9 @@ func main() {
 				fromID, _ := strconv.Atoi(tokens[1])
 				// n, _ := strconv.Atoi(tokens[2]) // <- optionnel, ici on envoie que 1 médecin max
 
+				fmt.Fprintf(os.Stderr, "[CTL %d] Nombre de médecin : %d\n", state.ID, state.Doctors)
 				if state.Doctors > 0 {
+
 					// On répond à la demande : envoie d’un médecin
 					msg := fmt.Sprintf("GIVE %d %d %d", state.ID, fromID, 1)
 					fmt.Fprintln(writer, msg)
@@ -102,6 +104,9 @@ func main() {
 				id, _ := strconv.Atoi(tokens[1])
 				n, _ := strconv.Atoi(tokens[2])
 				state.Known[id] = n
+				if id == state.ID {
+					state.Doctors = n
+				}
 			}
 
 			syncChan <- struct{}{} // relâcher le verrou
