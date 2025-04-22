@@ -21,20 +21,11 @@ func main() {
 	siteID := flag.Int("n", 0, "ID du site")
 	flag.Parse()
 
-	state := SiteState{
-		ID:      *siteID,
-		Doctors: 1,
-		Known:   make(map[int]int),
-	}
-
 	scanner := bufio.NewScanner(os.Stdin)
 	writer := bufio.NewWriter(os.Stdout)
 
 	syncChan := make(chan struct{}, 1)
 	syncChan <- struct{}{}
-
-	fmt.Fprintf(os.Stderr, "[CTL %d] Prêt avec %d médecin(s)\n", state.ID, state.Doctors)
-
 	var wg sync.WaitGroup
 	wg.Add(1)
 
@@ -45,7 +36,7 @@ func main() {
 			<-syncChan // verrou : on bloque tout
 
 			line := scanner.Text()
-			fmt.Fprintf(os.Stderr, "[CTL %d] Reçu: %s\n", state.ID, line)
+			fmt.Fprintf(os.Stderr, "[CTL %d] Reçu: %s\n", *siteID, line)
 
 			tokens := strings.Fields(line)
 			if len(tokens) == 0 {
@@ -63,20 +54,9 @@ func main() {
 				fromID, _ := strconv.Atoi(tokens[1])
 				// n, _ := strconv.Atoi(tokens[2]) //si on voudra faire transier plusieurs médecins
 
-				fmt.Fprintf(os.Stderr, "[CTL %d] Nombre de médecin : %d\n", state.ID, state.Doctors)
-				if state.Doctors > 0 {
-
-					// soit on répond à la demande : envoie d’un médecin
-					msg := fmt.Sprintf("GIVE %d %d %d", state.ID, fromID, 1)
-					fmt.Fprintln(writer, msg)
-					writer.Flush()
-					fmt.Fprintf(os.Stderr, "[CTL %d] Envoi de 1 médecin à %d\n", state.ID, fromID)
-				} else {
-					// si pas assez de médecins : relayer
-					fmt.Println(line)
-					fmt.Fprintf(os.Stderr, "[CTL %d] Relais de la demande de %d\n", state.ID, fromID)
-				}
-
+				//DIFFERENCIER QUAND ON ENVIUE MESSAGE AU CTL VS APPLICATION
+				fmt.Fprintf(os.Stderr, "[CTL %d] Relais de la demande de %d\n", *siteID, fromID)
+				fmt.Println(line)
 			case "GIVE":
 				if len(tokens) < 4 {
 					syncChan <- struct{}{}
@@ -87,25 +67,23 @@ func main() {
 				dst, _ := strconv.Atoi(tokens[2])
 				n, _ := strconv.Atoi(tokens[3])
 
-				if dst == state.ID {
-					state.Doctors += n
-					fmt.Fprintf(os.Stderr, "[CTL %d] Reçu %d médecin(s) de %d\n", state.ID, n, src)
+				if dst == *siteID {
+					//state.Doctors += n => pas à ctl de gérer ça
+					fmt.Fprintf(os.Stderr, "[CTL %d] Reçu %d médecin(s) de %d\n", *siteID, n, src)
+					msg := fmt.Sprintf("GIVE %d %d %d", src, dst, n)
+					fmt.Fprintln(writer, msg)
+					writer.Flush()
+
 				} else {
 					// Relais du message
 					fmt.Println(line)
-					fmt.Fprintf(os.Stderr, "[CTL %d] Relais de GIVE vers %d\n", state.ID, dst)
+					fmt.Fprintf(os.Stderr, "[CTL %d] Relais de GIVE vers %d\n", *siteID, dst)
 				}
 
 			case "UPDATE":
 				if len(tokens) < 3 {
 					syncChan <- struct{}{}
 					continue
-				}
-				id, _ := strconv.Atoi(tokens[1])
-				n, _ := strconv.Atoi(tokens[2])
-				state.Known[id] = n
-				if id == state.ID {
-					state.Doctors = n
 				}
 			}
 
